@@ -121,7 +121,6 @@ class State(rx.State):
     def select_image(self, image_path: str):
         """Select an image to display and load it as base64."""
         self.selected_image = image_path
-        self.zoom_level = 1.0  # Reset zoom when selecting new image
         
         # Load image as base64 and extract metadata
         full_path = os.path.join(self.texture_directory, image_path)
@@ -175,9 +174,15 @@ class State(rx.State):
     def zoom_in(self):
         """Increase zoom level."""
         if self.zoom_level < 4.0:
-            self.zoom_level = min(self.zoom_level + 1.0, 4.0)
+            if self.zoom_level < 1.0:
+                self.zoom_level = min(self.zoom_level * 2, 1.0)
+            else:
+                self.zoom_level = min(self.zoom_level + 1.0, 4.0)
     
     def zoom_out(self):
         """Decrease zoom level."""
-        if self.zoom_level > 1.0:
-            self.zoom_level = max(self.zoom_level - 1.0, 1.0)
+        if self.zoom_level > 0.125:
+            if self.zoom_level <= 1.0:
+                self.zoom_level = max(self.zoom_level / 2, 0.125)
+            else:
+                self.zoom_level = max(self.zoom_level - 1.0, 0.125)
