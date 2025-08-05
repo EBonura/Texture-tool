@@ -84,9 +84,8 @@ def image_list_panel() -> rx.Component:
             align="start",
             spacing="0"
         ),
-        width="450px"
+        width="400px"
     )
-
 
 def zoom_controls() -> rx.Component:
     """Create zoom control buttons."""
@@ -96,28 +95,46 @@ def zoom_controls() -> rx.Component:
             on_click=State.zoom_out,
             size="1",
             variant="soft",
-            disabled=State.zoom_level <= 1.0
+            disabled=State.zoom_level <= 0.125
         ),
         rx.button(
-            "1x",
+            "⅛×",
+            on_click=State.set_zoom(0.125),
+            size="1",
+            variant=rx.cond(State.zoom_level == 0.125, "solid", "soft")
+        ),
+        rx.button(
+            "¼×",
+            on_click=State.set_zoom(0.25),
+            size="1",
+            variant=rx.cond(State.zoom_level == 0.25, "solid", "soft")
+        ),
+        rx.button(
+            "½×",
+            on_click=State.set_zoom(0.5),
+            size="1",
+            variant=rx.cond(State.zoom_level == 0.5, "solid", "soft")
+        ),
+        rx.button(
+            "1×",
             on_click=State.set_zoom(1.0),
             size="1",
             variant=rx.cond(State.zoom_level == 1.0, "solid", "soft")
         ),
         rx.button(
-            "2x",
+            "2×",
             on_click=State.set_zoom(2.0),
             size="1",
             variant=rx.cond(State.zoom_level == 2.0, "solid", "soft")
         ),
         rx.button(
-            "3x",
+            "3×",
             on_click=State.set_zoom(3.0),
             size="1",
             variant=rx.cond(State.zoom_level == 3.0, "solid", "soft")
         ),
         rx.button(
-            "4x",
+            "4×",
             on_click=State.set_zoom(4.0),
             size="1",
             variant=rx.cond(State.zoom_level == 4.0, "solid", "soft")
@@ -129,7 +146,6 @@ def zoom_controls() -> rx.Component:
             variant="soft",
             disabled=State.zoom_level >= 4.0
         ),
-        rx.text(f"{State.zoom_level}x", size="1", weight="medium"),
         spacing="1",
         align="center"
     )
@@ -152,14 +168,12 @@ def image_preview_panel() -> rx.Component:
                         spacing="2",
                         align="center"
                     ),
-
-
                     rx.html(
                         f'<img src="{State.selected_image_data}" '
-                        f'width="{300 * State.zoom_level}px" '
+                        f'width="{State.image_width * State.zoom_level}px" '
+                        f'height="{State.image_height * State.zoom_level}px" '
                         f'style="image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;" />'
                     ),
-
                     spacing="3",
                     align="start",
                     width="100%"
@@ -170,7 +184,7 @@ def image_preview_panel() -> rx.Component:
             align="start"
         ),
     )
-
+    
 def index() -> rx.Component:
     """Main application page."""
     return rx.box(

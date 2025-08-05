@@ -28,6 +28,8 @@ class State(rx.State):
     image_file_size: str = ""
     texture_directory: str = "/Users/ebonura/Desktop/Godot/cortex-ignition-2/textures"
     zoom_level: float = 1.0
+    image_width: int = 0  # Add this
+    image_height: int = 0  # Add this
     
     def on_load(self):
         """Auto-load images when the page loads."""
@@ -137,6 +139,8 @@ class State(rx.State):
             with Image.open(full_path) as img:
                 self.image_format = img.format or Path(image_path).suffix.upper().lstrip('.')
                 self.image_resolution = f"{img.width} × {img.height}"
+                self.image_width = img.width  # Store actual width
+                self.image_height = img.height  # Store actual height
             
             # Load image as base64
             with open(full_path, "rb") as image_file:
@@ -161,6 +165,8 @@ class State(rx.State):
             self.image_format = ""
             self.image_resolution = ""
             self.image_file_size = ""
+            self.image_width = 0
+            self.image_height = 0
     
     def set_zoom(self, level: float):
         """Set the zoom level."""
