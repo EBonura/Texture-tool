@@ -28,13 +28,42 @@ class State(rx.State):
     image_file_size: str = ""
     texture_directory: str = "/Users/ebonura/Desktop/Godot/cortex-ignition-2/textures"
     zoom_level: float = 1.0
-    image_width: int = 0  # Add this
-    image_height: int = 0  # Add this
+    image_width: int = 0
+    image_height: int = 0
+    directory_input: str = ""  # Add this for the input field
     
     def on_load(self):
         """Auto-load images when the page loads."""
+        self.directory_input = self.texture_directory  # Initialize input with current directory
         self.load_images()
     
+    def update_directory(self):
+        """Update the texture directory and reload images."""
+        new_directory = self.directory_input.strip()
+        
+        # Check if the directory exists
+        if os.path.exists(new_directory) and os.path.isdir(new_directory):
+            self.texture_directory = new_directory
+            self.selected_image = ""  # Clear current selection
+            self.selected_image_data = ""
+            self.load_images()
+        else:
+            return rx.window_alert(f"Invalid directory: {new_directory}")
+
+    def go_up_directory(self):
+        """Navigate to the parent directory."""
+        parent_dir = os.path.dirname(self.texture_directory)
+        
+        # Check if we're not already at the root
+        if parent_dir and parent_dir != self.texture_directory:
+            self.texture_directory = parent_dir
+            self.directory_input = parent_dir
+            self.selected_image = ""  # Clear current selection
+            self.selected_image_data = ""
+            self.load_images()
+        else:
+            return rx.window_alert("Already at root directory")
+
     def load_images(self):
         """Load all image files and build a flat list with hierarchy info."""
         image_extensions = {'.png', '.jpg', '.jpeg', '.bmp', '.tga', '.webp', '.exr', '.hdr'}
@@ -114,8 +143,13 @@ class State(rx.State):
     def toggle_folder(self, folder_path: str):
         """Toggle folder expansion state."""
         if folder_path in self.expanded_folders:
-            self.expanded_folders = [f for f in self.expanded_folders if f != folder_path]
+            # When collapsing a folder, also collapse all its subfolders
+            self.expanded_folders = [
+                f for f in self.expanded_folders 
+                if f != folder_path and not f.startswith(folder_path + os.sep)
+            ]
         else:
+            # When expanding, just add this folder
             self.expanded_folders = self.expanded_folders + [folder_path]
     
     def select_image(self, image_path: str):
@@ -138,8 +172,8 @@ class State(rx.State):
             with Image.open(full_path) as img:
                 self.image_format = img.format or Path(image_path).suffix.upper().lstrip('.')
                 self.image_resolution = f"{img.width} × {img.height}"
-                self.image_width = img.width  # Store actual width
-                self.image_height = img.height  # Store actual height
+                self.image_width = img.width
+                self.image_height = img.height
             
             # Load image as base64
             with open(full_path, "rb") as image_file:

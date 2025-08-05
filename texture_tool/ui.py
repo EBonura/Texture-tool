@@ -185,6 +185,33 @@ def image_preview_panel() -> rx.Component:
         ),
     )
     
+def directory_selector() -> rx.Component:
+    """Create a directory selector component."""
+    return rx.hstack(
+        rx.button(
+            rx.icon("arrow-up", size=16),
+            on_click=State.go_up_directory,
+            size="2",
+            variant="soft",
+            title="Go up one directory"
+        ),
+        rx.input(
+            value=State.directory_input,
+            on_change=State.set_directory_input,
+            placeholder="Enter texture directory path...",
+            width="400px",
+            size="2"
+        ),
+        rx.button(
+            "Change Directory",
+            on_click=State.update_directory,
+            size="2",
+            variant="soft"
+        ),
+        spacing="2",
+        width="100%"
+    )
+
 def index() -> rx.Component:
     """Main application page."""
     return rx.box(
@@ -204,13 +231,14 @@ def index() -> rx.Component:
                 width="100%",
                 padding_bottom="2"
             ),
+            directory_selector(),  # Add the directory selector here
             rx.hstack(
                 image_list_panel(),
                 image_preview_panel(),
                 spacing="4",
                 width="100%",
                 align="start",
-                height="calc(100vh - 80px)"
+                height="calc(100vh - 120px)"
             ),
             padding="10px",
             spacing="4",
