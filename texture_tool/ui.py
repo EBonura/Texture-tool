@@ -84,7 +84,8 @@ def image_list_panel() -> rx.Component:
             align="start",
             spacing="0"
         ),
-        width="400px"
+        width="400px",
+        min_width="400px"
     )
 
 def zoom_controls() -> rx.Component:
