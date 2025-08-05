@@ -27,6 +27,7 @@ class State(rx.State):
     image_resolution: str = ""
     image_file_size: str = ""
     texture_directory: str = "/Users/ebonura/Desktop/Godot/cortex-ignition-2/textures"
+    zoom_level: float = 1.0
     
     def on_load(self):
         """Auto-load images when the page loads."""
@@ -118,6 +119,7 @@ class State(rx.State):
     def select_image(self, image_path: str):
         """Select an image to display and load it as base64."""
         self.selected_image = image_path
+        self.zoom_level = 1.0  # Reset zoom when selecting new image
         
         # Load image as base64 and extract metadata
         full_path = os.path.join(self.texture_directory, image_path)
@@ -159,3 +161,17 @@ class State(rx.State):
             self.image_format = ""
             self.image_resolution = ""
             self.image_file_size = ""
+    
+    def set_zoom(self, level: float):
+        """Set the zoom level."""
+        self.zoom_level = level
+    
+    def zoom_in(self):
+        """Increase zoom level."""
+        if self.zoom_level < 4.0:
+            self.zoom_level = min(self.zoom_level + 1.0, 4.0)
+    
+    def zoom_out(self):
+        """Decrease zoom level."""
+        if self.zoom_level > 1.0:
+            self.zoom_level = max(self.zoom_level - 1.0, 1.0)

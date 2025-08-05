@@ -76,24 +76,62 @@ def image_list_panel() -> rx.Component:
     """Create the image list panel."""
     return rx.card(
         rx.vstack(
-            rx.heading("Files", size="6"),
-            rx.scroll_area(
-                rx.vstack(
-                    rx.foreach(
-                        State.file_items,
-                        tree_item
-                    ),
-                    spacing="0",
-                    width="100%"
-                ),
-                height="600px",
-                width="100%"
+            rx.foreach(
+                State.file_items,
+                tree_item
             ),
             width="100%",
             align="start",
-            spacing="3"
+            spacing="0"
         ),
         width="450px"
+    )
+
+
+def zoom_controls() -> rx.Component:
+    """Create zoom control buttons."""
+    return rx.hstack(
+        rx.button(
+            "−",
+            on_click=State.zoom_out,
+            size="1",
+            variant="soft",
+            disabled=State.zoom_level <= 1.0
+        ),
+        rx.button(
+            "1x",
+            on_click=State.set_zoom(1.0),
+            size="1",
+            variant=rx.cond(State.zoom_level == 1.0, "solid", "soft")
+        ),
+        rx.button(
+            "2x",
+            on_click=State.set_zoom(2.0),
+            size="1",
+            variant=rx.cond(State.zoom_level == 2.0, "solid", "soft")
+        ),
+        rx.button(
+            "3x",
+            on_click=State.set_zoom(3.0),
+            size="1",
+            variant=rx.cond(State.zoom_level == 3.0, "solid", "soft")
+        ),
+        rx.button(
+            "4x",
+            on_click=State.set_zoom(4.0),
+            size="1",
+            variant=rx.cond(State.zoom_level == 4.0, "solid", "soft")
+        ),
+        rx.button(
+            "+",
+            on_click=State.zoom_in,
+            size="1",
+            variant="soft",
+            disabled=State.zoom_level >= 4.0
+        ),
+        rx.text(f"{State.zoom_level}x", size="1", weight="medium"),
+        spacing="1",
+        align="center"
     )
 
 
@@ -101,7 +139,6 @@ def image_preview_panel() -> rx.Component:
     """Create the image preview panel."""
     return rx.card(
         rx.vstack(
-            rx.heading("Preview", size="6"),
             rx.cond(
                 State.selected_image != "",
                 rx.vstack(
@@ -110,25 +147,29 @@ def image_preview_panel() -> rx.Component:
                         rx.badge(State.image_format, color_scheme="blue"),
                         rx.badge(State.image_resolution, color_scheme="green"),
                         rx.badge(State.image_file_size, color_scheme="gray"),
-                        spacing="2"
+                        rx.divider(orientation="vertical", size="2"),
+                        zoom_controls(),
+                        spacing="2",
+                        align="center"
                     ),
-                    rx.image(
-                        src=State.selected_image_data,
-                        max_width="600px",
-                        max_height="500px",
-                        object_fit="contain"
+
+
+                    rx.html(
+                        f'<img src="{State.selected_image_data}" '
+                        f'width="{300 * State.zoom_level}px" '
+                        f'style="image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;" />'
                     ),
+
                     spacing="3",
-                    align="start"
+                    align="start",
+                    width="100%"
                 ),
                 rx.text("Select an image to preview", color="gray")
             ),
             width="100%",
             align="start"
         ),
-        flex="1"
     )
-
 
 def index() -> rx.Component:
     """Main application page."""
@@ -136,14 +177,18 @@ def index() -> rx.Component:
         rx.color_mode.button(position="top-right"),
         rx.vstack(
             rx.hstack(
+                rx.heading("Texture Tool", size="4"),
                 rx.button(
-                    "Refresh Images",
+                    rx.icon("refresh-cw", size=20),
                     on_click=State.load_images,
-                    color_scheme="blue",
-                    size="2"
+                    variant="ghost",
+                    size="3",
+                    cursor="pointer"
                 ),
+                align="center",
                 justify="start",
-                width="100%"
+                width="100%",
+                padding_bottom="2"
             ),
             rx.hstack(
                 image_list_panel(),
@@ -151,8 +196,9 @@ def index() -> rx.Component:
                 spacing="4",
                 width="100%",
                 align="start",
-                height="calc(100vh - 120px)"
+                height="calc(100vh - 80px)"
             ),
+            padding="10px",
             spacing="4",
             width="100%",
             height="100vh"
