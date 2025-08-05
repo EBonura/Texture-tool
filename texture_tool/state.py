@@ -2,6 +2,7 @@
 
 import reflex as rx
 import os
+import io
 import base64
 from pathlib import Path
 from typing import List
@@ -30,8 +31,105 @@ class State(rx.State):
     zoom_level: float = 1.0
     image_width: int = 0
     image_height: int = 0
-    directory_input: str = ""  # Add this for the input field
+    directory_input: str = ""
+
+    # Resize properties
+    resize_width: int = 128
+    resize_height: int = 128
+    resize_mode: str = "nearest"  # nearest, point, or bilinear
+    color_depth: int = 16  # bits per pixel (PS1 was 16-bit)
+    dithering: bool = True
+    processed_image_data: str = ""
+    show_processed: bool = False
     
+    def process_image(self):
+        """Process the image with PS1-style effects."""
+        if not self.selected_image:
+            return rx.window_alert("Please select an image first")
+        
+        full_path = os.path.join(self.texture_directory, self.selected_image)
+        
+        try:
+            # Open the image
+            img = Image.open(full_path)
+            
+            # Convert to RGB if necessary
+            if img.mode not in ('RGB', 'RGBA'):
+                img = img.convert('RGB')
+            
+            # Resize with nearest neighbor for that crunchy PS1 look
+            if self.resize_mode == "nearest":
+                resample = Image.NEAREST
+            elif self.resize_mode == "point":
+                resample = Image.NEAREST  # Same as nearest
+            else:  # bilinear for comparison
+                resample = Image.BILINEAR
+            
+            resized = img.resize((self.resize_width, self.resize_height), resample)
+            
+            # Apply color depth reduction for PS1 effect
+            if self.color_depth == 16:
+                # Convert to 16-bit color (5-6-5 RGB)
+                resized = resized.convert('RGB')
+                pixels = resized.load()
+                for y in range(resized.height):
+                    for x in range(resized.width):
+                        r, g, b = pixels[x, y]
+                        # 5 bits for R and B, 6 bits for G
+                        r = (r >> 3) << 3
+                        g = (g >> 2) << 2
+                        b = (b >> 3) << 3
+                        pixels[x, y] = (r, g, b)
+            elif self.color_depth == 8:
+                # 8-bit color palette
+                resized = resized.convert('P', palette=Image.ADAPTIVE, colors=256)
+                if self.dithering:
+                    resized = resized.convert('RGB')
+            elif self.color_depth == 4:
+                # 4-bit color (16 colors)
+                resized = resized.convert('P', palette=Image.ADAPTIVE, colors=16)
+                if self.dithering:
+                    resized = resized.convert('RGB')
+            
+            # Convert to base64 for display
+            buffered = io.BytesIO()
+            resized.save(buffered, format="PNG")
+            processed_data = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            self.processed_image_data = f"data:image/png;base64,{processed_data}"
+            self.show_processed = True
+            
+        except Exception as e:
+            print(f"Error processing image: {e}")
+            return rx.window_alert(f"Error processing image: {str(e)}")
+
+    def set_color_depth_from_string(self, value: str):
+        """Set color depth from radio group string value."""
+        if "4-bit" in value:
+            self.color_depth = 4
+        elif "8-bit" in value:
+            self.color_depth = 8
+        else:  # "16-bit (PS1 native)"
+            self.color_depth = 16
+            
+    def set_resize_width_from_string(self, value: str):
+        """Set resize width from string value."""
+        try:
+            self.resize_width = int(value)
+        except ValueError:
+            self.resize_width = 128  # Default fallback
+
+    def set_resize_height_from_string(self, value: str):
+        """Set resize height from string value."""
+        try:
+            self.resize_height = int(value)
+        except ValueError:
+            self.resize_height = 128  # Default fallback
+
+    def toggle_preview(self):
+        """Toggle between original and processed image."""
+        if self.processed_image_data:
+            self.show_processed = not self.show_processed
+
     def on_load(self):
         """Auto-load images when the page loads."""
         self.directory_input = self.texture_directory  # Initialize input with current directory

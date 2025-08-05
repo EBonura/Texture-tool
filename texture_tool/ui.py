@@ -213,6 +213,96 @@ def directory_selector() -> rx.Component:
         width="100%"
     )
 
+def resize_controls() -> rx.Component:
+    """Create resize control panel."""
+    return rx.card(
+        rx.vstack(
+            rx.heading("PS1 Texture Processing", size="4"),
+            
+            rx.hstack(
+                rx.vstack(
+                    rx.text("Width:", size="2"),
+                    rx.select(
+                        ["32", "64", "128", "256", "512"],
+                        default_value="128",
+                        on_change=State.set_resize_width_from_string,
+                        size="2"
+                    ),
+                    spacing="1"
+                ),
+                rx.vstack(
+                    rx.text("Height:", size="2"),
+                    rx.select(
+                        ["32", "64", "128", "256", "512"],
+                        default_value="128",
+                        on_change=State.set_resize_height_from_string,
+                        size="2"
+                    ),
+                    spacing="1"
+                ),
+                spacing="4"
+            ),
+            
+            rx.vstack(
+                rx.text("Resize Mode:", size="2"),
+                rx.radio_group(
+                    ["nearest", "point", "bilinear"],
+                    default_value="nearest",
+                    on_change=State.set_resize_mode,
+                    size="2"
+                ),
+                spacing="1"
+            ),
+            
+            rx.vstack(
+                rx.text("Color Depth:", size="2"),
+                rx.radio_group(
+                    ["4-bit (16 colors)", "8-bit (256 colors)", "16-bit (PS1 native)"],
+                    default_value="16-bit (PS1 native)",
+                    on_change=State.set_color_depth_from_string,
+                    size="2"
+                ),
+                spacing="1"
+            ),
+            
+            rx.hstack(
+                rx.checkbox(
+                    "Dithering",
+                    default_checked=True,
+                    on_change=State.set_dithering,
+                    size="2"
+                ),
+                rx.text("(for 4/8-bit modes)", size="1", color="gray"),
+                spacing="2"
+            ),
+            
+            rx.hstack(
+                rx.button(
+                    "Process Image",
+                    on_click=State.process_image,
+                    size="3",
+                    color_scheme="green",
+                    width="100%"
+                ),
+                rx.button(
+                    "Toggle Preview",
+                    on_click=State.toggle_preview,
+                    size="3",
+                    variant="soft",
+                    width="100%",
+                    disabled=State.processed_image_data == ""
+                ),
+                spacing="2",
+                width="100%"
+            ),
+            
+            spacing="3",
+            width="100%"
+        ),
+        width="100%"
+    )
+
+
 def index() -> rx.Component:
     """Main application page."""
     return rx.box(
@@ -232,10 +322,15 @@ def index() -> rx.Component:
                 width="100%",
                 padding_bottom="2"
             ),
-            directory_selector(),  # Add the directory selector here
+            directory_selector(),
             rx.hstack(
                 image_list_panel(),
-                image_preview_panel(),
+                rx.vstack(
+                    image_preview_panel(),
+                    resize_controls(),  # Add the resize controls
+                    spacing="4",
+                    width="100%"
+                ),
                 spacing="4",
                 width="100%",
                 align="start",
