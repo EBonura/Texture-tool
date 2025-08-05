@@ -41,66 +41,72 @@ class State(rx.State):
             return
         
         items = []
-        folders_seen = set()
         
-        # Walk through directory and collect all items
-        for root, _, files in os.walk(self.texture_directory):
+        # First, collect all folders and files
+        folder_contents = {}
+        
+        for root, dirs, files in os.walk(self.texture_directory):
             relative_root = os.path.relpath(root, self.texture_directory)
             if relative_root == ".":
                 relative_root = ""
             
-            # Add folders to the list
-            if relative_root and relative_root not in folders_seen:
+            # Store folder structure
+            if relative_root:
                 parts = relative_root.split(os.sep)
                 for i, part in enumerate(parts):
                     folder_path = os.sep.join(parts[:i+1])
-                    if folder_path not in folders_seen:
-                        folders_seen.add(folder_path)
-                        items.append(FileItem(
-                            name=part,
-                            path=folder_path,
-                            is_folder=True,
-                            level=i,
-                            parent=os.sep.join(parts[:i]) if i > 0 else ""
-                        ))
+                    parent = os.sep.join(parts[:i]) if i > 0 else ""
+                    
+                    if folder_path not in folder_contents:
+                        folder_contents[folder_path] = {
+                            'item': FileItem(
+                                name=part,
+                                path=folder_path,
+                                is_folder=True,
+                                level=i,
+                                parent=parent
+                            ),
+                            'children': []
+                        }
             
-            # Add image files
+            # Collect image files
+            image_files = []
             for file in files:
                 if Path(file).suffix.lower() in image_extensions:
                     file_path = os.path.join(relative_root, file) if relative_root else file
                     level = len(relative_root.split(os.sep)) if relative_root else 0
-                    items.append(FileItem(
+                    image_files.append(FileItem(
                         name=file,
                         path=file_path,
                         is_folder=False,
                         level=level,
                         parent=relative_root
                     ))
+            
+            # Store files in their parent folder
+            if relative_root and relative_root in folder_contents:
+                folder_contents[relative_root]['children'].extend(image_files)
+            elif not relative_root:
+                # Root level files
+                items.extend(sorted(image_files, key=lambda x: x.name))
         
-        self.file_items = sorted(items, key=lambda x: (x.parent, not x.is_folder, x.name))
-    
-    def is_item_visible(self, item: FileItem) -> bool:
-        """Check if an item should be visible based on parent folder expansion."""
-        if not item.parent:
-            return True
+        # Build the final list with proper ordering
+        def add_folder_and_children(folder_path, folder_data):
+            items.append(folder_data['item'])
+            # Add immediate children (files)
+            for child in sorted(folder_data['children'], key=lambda x: x.name):
+                items.append(child)
+            # Add subfolders
+            for sub_path, sub_data in sorted(folder_contents.items()):
+                if sub_data['item'].parent == folder_path:
+                    add_folder_and_children(sub_path, sub_data)
         
-        # Check if all parent folders are expanded
-        parent_parts = item.parent.split(os.sep)
-        for i in range(len(parent_parts)):
-            parent_path = os.sep.join(parent_parts[:i+1])
-            if parent_path not in self.expanded_folders:
-                return False
+        # Add root level folders
+        for folder_path, folder_data in sorted(folder_contents.items()):
+            if not folder_data['item'].parent:  # Root level folder
+                add_folder_and_children(folder_path, folder_data)
         
-        return True
-    
-    @rx.var
-    def visible_items(self) -> List[FileItem]:
-        """Return only the items that should be visible."""
-        return [item for item in self.file_items if self.is_item_visible(item)]
-    
-    def is_folder_expanded(self, folder_path: str) -> bool:
-        """Check if a folder is expanded."""
-        return folder_path in self.expanded_folders
+        self.file_items = items
     
     def toggle_folder(self, folder_path: str):
         """Toggle folder expansion state."""

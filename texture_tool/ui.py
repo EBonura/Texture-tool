@@ -4,13 +4,14 @@ import reflex as rx
 from .state import State, FileItem
 
 
-def should_show_item(item: FileItem) -> rx.Var:
-    """Check if item should be shown based on parent folder expansion."""
-    # For root level items (no parent), always show
+def is_item_visible(item: FileItem) -> rx.Var:
+    """Check if an item should be visible based on parent folder expansion."""
+    # For root items (parent is empty string), always visible
+    # For items with parents, check if parent is expanded
     return rx.cond(
         item.parent == "",
-        True,
-        True  # For now, show all items - we can implement proper hiding later
+        True,  # Root items always visible
+        State.expanded_folders.contains(item.parent)  # Check if parent folder is expanded
     )
 
 
@@ -18,7 +19,11 @@ def folder_item(item: FileItem) -> rx.Component:
     """Create a folder button."""
     return rx.button(
         rx.hstack(
-            rx.text("📁", font_size="16px", width="20px", text_align="center"),
+            rx.cond(
+                State.expanded_folders.contains(item.path),
+                rx.text("📂", font_size="16px", width="20px", text_align="center"),
+                rx.text("📁", font_size="16px", width="20px", text_align="center")
+            ),
             rx.text(item.name, font_size="14px", white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
             spacing="2",
             align="center",
@@ -57,65 +62,71 @@ def file_item(item: FileItem) -> rx.Component:
 def tree_item(item: FileItem) -> rx.Component:
     """Create a tree item (folder or file)."""
     return rx.cond(
-        should_show_item(item),
+        is_item_visible(item),
         rx.cond(
             item.is_folder,
             folder_item(item),
             file_item(item)
         ),
-        rx.fragment()
+        rx.fragment()  # Return empty fragment for hidden items
     )
 
 
 def image_list_panel() -> rx.Component:
     """Create the image list panel."""
-    return rx.vstack(
-        rx.heading("Files", size="6"),
-        rx.scroll_area(
-            rx.vstack(
-                rx.foreach(
-                    State.file_items,
-                    tree_item
+    return rx.card(
+        rx.vstack(
+            rx.heading("Files", size="6"),
+            rx.scroll_area(
+                rx.vstack(
+                    rx.foreach(
+                        State.file_items,
+                        tree_item
+                    ),
+                    spacing="0",
+                    width="100%"
                 ),
-                spacing="0",
+                height="600px",
                 width="100%"
             ),
-            height="600px",
-            width="100%"
+            width="100%",
+            align="start",
+            spacing="3"
         ),
-        width="450px",
-        align="start",
-        spacing="3"
+        width="450px"
     )
 
 
 def image_preview_panel() -> rx.Component:
     """Create the image preview panel."""
-    return rx.vstack(
-        rx.heading("Preview", size="6"),
-        rx.cond(
-            State.selected_image != "",
-            rx.vstack(
-                rx.text(State.selected_image, size="2", weight="bold"),
-                rx.hstack(
-                    rx.badge(State.image_format, color_scheme="blue"),
-                    rx.badge(State.image_resolution, color_scheme="green"),
-                    rx.badge(State.image_file_size, color_scheme="gray"),
-                    spacing="2"
+    return rx.card(
+        rx.vstack(
+            rx.heading("Preview", size="6"),
+            rx.cond(
+                State.selected_image != "",
+                rx.vstack(
+                    rx.text(State.selected_image, size="2", weight="bold"),
+                    rx.hstack(
+                        rx.badge(State.image_format, color_scheme="blue"),
+                        rx.badge(State.image_resolution, color_scheme="green"),
+                        rx.badge(State.image_file_size, color_scheme="gray"),
+                        spacing="2"
+                    ),
+                    rx.image(
+                        src=State.selected_image_data,
+                        max_width="600px",
+                        max_height="500px",
+                        object_fit="contain"
+                    ),
+                    spacing="3",
+                    align="start"
                 ),
-                rx.image(
-                    src=State.selected_image_data,
-                    max_width="600px",
-                    max_height="500px",
-                    object_fit="contain"
-                ),
-                spacing="3",
-                align="start"
+                rx.text("Select an image to preview", color="gray")
             ),
-            rx.text("Select an image to preview", color="gray")
+            width="100%",
+            align="start"
         ),
-        flex="1",
-        align="start"
+        flex="1"
     )
 
 
